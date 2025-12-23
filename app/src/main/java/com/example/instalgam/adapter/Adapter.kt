@@ -1,16 +1,17 @@
 package com.example.instalgam.adapter
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.instalgam.R
 import com.example.instalgam.model.Post
-import org.w3c.dom.Text
+import com.squareup.picasso.Picasso
+import java.net.URL
 
 class PostAdapter(
     val context: Context,
@@ -47,6 +48,17 @@ class PostAdapter(
                 holder.likeButton.setImageResource(R.drawable.unliked_heart)
             }
         }
+
+        // var url = URL(post.profilePicture)
+        // var bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
+        // holder.pfpImage.setImageBitmap(bmp)
+        // url = URL(post.postImage)
+        // bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
+        // holder.postImage.setImageBitmap(bmp)
+//        holder.postImage.setImageResource(R.drawable.liked_heart)
+//        holder.pfpImage.setImageResource(R.drawable.unliked_heart)
+        Picasso.get().load(post.profilePicture).into(holder.pfpImage)
+        Picasso.get().load(post.postImage).into(holder.postImage)
     }
 
     override fun getItemCount(): Int = elements.size
@@ -55,7 +67,9 @@ class PostAdapter(
         view: View,
     ) : RecyclerView.ViewHolder(view) {
         val username: TextView = view.findViewById(R.id.usernameText)
-        val likeButton: ImageButton = view.findViewById(R.id.likeButton)
+        val likeButton: ImageView = view.findViewById(R.id.likeButton)
         val likeCount: TextView = view.findViewById(R.id.likeCountText)
+        val postImage: ImageView = view.findViewById(R.id.postPicture)
+        val pfpImage: ImageView = view.findViewById(R.id.profilePictureImage)
     }
 }

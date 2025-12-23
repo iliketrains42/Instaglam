@@ -1,16 +1,23 @@
 package com.example.instalgam.model
 
-import android.media.Image
+import com.squareup.moshi.Json
 
-class Post(
-    val postId: Int,
+data class Post(
+    @Json(name = "post_id")
+    val postId: String?,
+    @Json(name = "user_name")
     val userName: String,
-    // val profilePicture: Image,
-    // val postImage: Image,
+    @Json(name = "user_image")
+    val profilePicture: String,
+    @Json(name = "post_image")
+    val postImage: String,
+    @Json(name = "like_count")
     var likeCount: Int,
+    @Json(name = "liked_by_user")
     var likedByUser: Boolean,
 ) {
     fun like() {
+        // API calls Like and Dislike
         likedByUser = !likedByUser
         if (likedByUser) {
             likeCount++
@@ -19,3 +26,8 @@ class Post(
         }
     }
 }
+
+data class PostResponse(
+    @Json(name = "feed")
+    val posts: MutableList<Post>,
+)

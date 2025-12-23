@@ -24,7 +24,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -45,6 +45,10 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.recyclerview)
     testImplementation(libs.junit)
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
+    implementation("com.squareup.retrofit2:converter-moshi:3.0.0")
+    implementation("com.squareup.picasso:picasso:2.8")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
