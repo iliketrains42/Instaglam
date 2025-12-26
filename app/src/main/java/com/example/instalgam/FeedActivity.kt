@@ -3,18 +3,25 @@ package com.example.instalgam
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.instalgam.adapter.PostAdapter
 import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.Post
 import com.example.instalgam.model.PostResponse
+import com.example.instalgam.room.DatabasePost
+import com.example.instalgam.room.PostDatabase
+import com.example.instalgam.room.PostDatabaseHelper
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
 
@@ -22,58 +29,120 @@ class FeedActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var signOutButton: Button
     private lateinit var postAdapter: PostAdapter
-    private var posts: MutableList<Post> = mutableListOf()
+    private val posts: MutableList<Post> = mutableListOf()
+
+    private lateinit var dbHelper: PostDatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.feed)
-        val data = intent.extras
 
+        val data = intent.extras
         if (data != null) {
             val username: String? = data.getString("USER_USERNAME")
             Toast.makeText(this, "$username has logged in!", Toast.LENGTH_SHORT).show()
         }
-        signOutButton = findViewById(R.id.signOutButton)
 
+        // ---------- Room ----------
+        val db = PostDatabase.getInstance(applicationContext)
+        dbHelper = PostDatabaseHelper(db.postDao())
+
+        // ---------- RecyclerView ----------
         recyclerView = findViewById(R.id.recyclerView)
         postAdapter = PostAdapter(this, posts)
         recyclerView.adapter = postAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.setHasFixedSize(true)
 
-        fetchPosts()
-
+        // ---------- Sign out ----------
+        signOutButton = findViewById(R.id.signOutButton)
         signOutButton.setOnClickListener {
-            val sp: SharedPreferences = getSharedPreferences(getString(R.string.shared_preferences_file_name), Context.MODE_PRIVATE)
-            val username: String? = sp.getString(getString(R.string.logged_in_user), null)
+            val sp =
+                getSharedPreferences(
+                    getString(R.string.shared_preferences_file_name),
+                    Context.MODE_PRIVATE,
+                )
+
+            val username = sp.getString(getString(R.string.logged_in_user), null)
+
             with(sp.edit()) {
                 putString(getString(R.string.logged_in_user), null)
-                // remove(R.string.logged_in_user.toString())
                 apply()
             }
-            val intent = Intent(this@FeedActivity, MainActivity::class.java)
-            startActivity(intent)
+
+            startActivity(Intent(this, MainActivity::class.java))
             Toast.makeText(this, "Signing out of $username", Toast.LENGTH_SHORT).show()
         }
+
+        // ---------- Connectivity ----------
+        registerNetworkCallback()
     }
 
-    private fun fetchPosts() {
-        val client = RetrofitApiClient.apiService.fetchPosts()
-        client.enqueue(
+    private fun registerNetworkCallback() {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        // Check initial network state, as onUnavailable is not called on startup.
+        if (connectivityManager.activeNetwork == null) {
+            Log.d("networkStatus", "Network is not available on startup")
+            Toast
+                .makeText(
+                    this@FeedActivity,
+                    "Device is not connected to a network. Loading posts from Room database",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            fetchPostsOffline()
+        } else {
+            Log.d("networkStatus", "Network is available")
+            fetchPostsOnline()
+        }
+
+//        connectivityManager.registerDefaultNetworkCallback(
+//            object : ConnectivityManager.NetworkCallback() {
+//                override fun onAvailable(network: Network) {
+//                    Log.d("networkStatus", "Network is available")
+//                    fetchPostsOnline()
+//                }
+//
+//                override fun onUnavailable() {
+//                    Log.d("networkStatus", "Network is not available")
+//                    fetchPostsOffline()
+//                }
+//            },
+//        )
+    }
+
+    private fun fetchPostsOnline() {
+        RetrofitApiClient.apiService.fetchPosts().enqueue(
             object : retrofit2.Callback<PostResponse> {
                 override fun onResponse(
                     call: Call<PostResponse>,
                     response: Response<PostResponse>,
                 ) {
                     if (response.isSuccessful) {
-                        Log.d("posts", response.body().toString())
-                        response.body()?.posts?.let {
-                            posts.clear()
-                            posts.addAll(it.filterNotNull()) // Filter out any null posts
+                        val apiPosts = response.body()?.posts?.filterNotNull() ?: emptyList()
+
+                        posts.clear()
+                        posts.addAll(apiPosts)
+                        postAdapter.notifyDataSetChanged()
+
+                        lifecycleScope.launch {
+                            val dbPosts =
+                                apiPosts.map {
+                                    DatabasePost(
+                                        it.postId,
+                                        it.userName,
+                                        it.profilePicture,
+                                        it.postImage,
+                                        it.likeCount,
+                                        it.likedByUser,
+                                    )
+                                }
+                            dbHelper.savePosts(dbPosts)
+                            Log.d("dbStatus", "Pushed ${dbPosts.size} posts into database")
                         }
                     } else {
                         Toast.makeText(this@FeedActivity, "Failed to load posts", Toast.LENGTH_SHORT).show()
+                        fetchPostsOffline() // Fallback to offline if API fails
                     }
                 }
 
@@ -83,8 +152,30 @@ class FeedActivity : AppCompatActivity() {
                 ) {
                     Log.e("apiCallFailed", t.message.toString())
                     Toast.makeText(this@FeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
+                    fetchPostsOffline() // Fallback to offline on failure
                 }
             },
         )
+    }
+
+    private fun fetchPostsOffline() {
+        lifecycleScope.launch {
+            val dbPosts = dbHelper.getPosts()
+            Log.d("dbStatus", "Loaded ${dbPosts.size} posts from database")
+            posts.clear()
+            posts.addAll(
+                dbPosts.map {
+                    Post(
+                        it.postId,
+                        it.userName,
+                        it.profilePicture,
+                        it.postImage,
+                        it.likeCount,
+                        it.likedByUser,
+                    )
+                },
+            )
+            postAdapter.notifyDataSetChanged()
+        }
     }
 }

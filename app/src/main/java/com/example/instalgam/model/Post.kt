@@ -4,7 +4,7 @@ import com.squareup.moshi.Json
 
 data class Post(
     @Json(name = "post_id")
-    val postId: String?,
+    val postId: String,
     @Json(name = "user_name")
     val userName: String,
     @Json(name = "user_image")
@@ -15,17 +15,7 @@ data class Post(
     var likeCount: Int,
     @Json(name = "liked_by_user")
     var likedByUser: Boolean,
-) {
-    fun like() {
-        // API calls Like and Dislike
-        likedByUser = !likedByUser
-        if (likedByUser) {
-            likeCount++
-        } else {
-            likeCount--
-        }
-    }
-}
+)
 
 data class PostResponse(
     @Json(name = "feed")

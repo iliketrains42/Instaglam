@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-kapt")
 }
 
 android {
@@ -46,9 +47,13 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     testImplementation(libs.junit)
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("androidx.room:room-runtime:2.8.4")
+    kapt("androidx.room:room-compiler:2.8.4")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
     implementation("com.squareup.retrofit2:converter-moshi:3.0.0")
-    implementation("com.squareup.picasso:picasso:2.8")
+//    implementation("com.squareup.picasso:picasso:2.8")
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
