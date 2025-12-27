@@ -2,9 +2,7 @@ package com.example.instalgam
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.ConnectivityManager
-import android.net.Network
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -36,7 +34,7 @@ class FeedActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.feed)
+        setContentView(R.layout.post_feed)
 
         val data = intent.extras
         if (data != null) {
@@ -44,18 +42,15 @@ class FeedActivity : AppCompatActivity() {
             Toast.makeText(this, "$username has logged in!", Toast.LENGTH_SHORT).show()
         }
 
-        // ---------- Room ----------
         val db = PostDatabase.getInstance(applicationContext)
         dbHelper = PostDatabaseHelper(db.postDao())
 
-        // ---------- RecyclerView ----------
         recyclerView = findViewById(R.id.recyclerView)
         postAdapter = PostAdapter(this, posts)
         recyclerView.adapter = postAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.setHasFixedSize(true)
 
-        // ---------- Sign out ----------
         signOutButton = findViewById(R.id.signOutButton)
         signOutButton.setOnClickListener {
             val sp =
@@ -75,13 +70,11 @@ class FeedActivity : AppCompatActivity() {
             Toast.makeText(this, "Signing out of $username", Toast.LENGTH_SHORT).show()
         }
 
-        // ---------- Connectivity ----------
-        registerNetworkCallback()
+        checkConnectivityStatus()
     }
 
-    private fun registerNetworkCallback() {
+    private fun checkConnectivityStatus() {
         val connectivityManager = getSystemService(ConnectivityManager::class.java)
-        // Check initial network state, as onUnavailable is not called on startup.
         if (connectivityManager.activeNetwork == null) {
             Log.d("networkStatus", "Network is not available on startup")
             Toast
@@ -150,7 +143,7 @@ class FeedActivity : AppCompatActivity() {
                     call: Call<PostResponse>,
                     t: Throwable,
                 ) {
-                    Log.e("apiCallFailed", t.message.toString())
+                    Log.e("apiCall", t.message.toString())
                     Toast.makeText(this@FeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
                     fetchPostsOffline() // Fallback to offline on failure
                 }
