@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Button
-import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.jvm.java
@@ -20,7 +19,7 @@ class MainActivity : AppCompatActivity() {
         val sp: SharedPreferences = getSharedPreferences(getString(R.string.shared_preferences_file_name), Context.MODE_PRIVATE)
         val username: String? = sp.getString(getString(R.string.logged_in_user), null)
         if (username != null) {
-            val intent = Intent(this@MainActivity, FeedActivity::class.java)
+            val intent = Intent(this@MainActivity, PostFeedActivity::class.java)
             // intent.putExtra("USER_USERNAME", username)
             startActivity(intent)
         }

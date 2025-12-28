@@ -16,10 +16,13 @@
         android:theme="@style/Theme.Instalgam"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".ReelsFeedActivity"
+            android:exported="false" />
+        <activity
             android:name=".SignInActivity"
             android:exported="false" />
         <activity
-            android:name=".FeedActivity"
+            android:name=".PostFeedActivity"
             android:exported="false" />
         <activity
             android:name=".LoginActivity"
@@ -32,7 +35,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
     </application>
 

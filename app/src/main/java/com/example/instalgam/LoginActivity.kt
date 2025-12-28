@@ -31,7 +31,7 @@ class LoginActivity : AppCompatActivity() {
                     putString(getString(R.string.logged_in_user), uname)
                     apply()
                 }
-                val intent = Intent(this@LoginActivity, FeedActivity::class.java)
+                val intent = Intent(this@LoginActivity, PostFeedActivity::class.java)
                 intent.putExtra("USER_USERNAME", uname)
                 startActivity(intent)
             } else {

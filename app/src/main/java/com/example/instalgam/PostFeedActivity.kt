@@ -23,10 +23,11 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
 
-class FeedActivity : AppCompatActivity() {
+class PostFeedActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var signOutButton: Button
     private lateinit var postAdapter: PostAdapter
+    private lateinit var reelsButton: Button
     private val posts: MutableList<Post> = mutableListOf()
 
     private lateinit var dbHelper: PostDatabaseHelper
@@ -70,6 +71,11 @@ class FeedActivity : AppCompatActivity() {
             Toast.makeText(this, "Signing out of $username", Toast.LENGTH_SHORT).show()
         }
 
+        reelsButton = findViewById(R.id.reels)
+        reelsButton.setOnClickListener {
+            val intent = Intent(this@PostFeedActivity, ReelsFeedActivity::class.java)
+            startActivity(intent)
+        }
         checkConnectivityStatus()
     }
 
@@ -79,7 +85,7 @@ class FeedActivity : AppCompatActivity() {
             Log.d("networkStatus", "Network is not available on startup")
             Toast
                 .makeText(
-                    this@FeedActivity,
+                    this@PostFeedActivity,
                     "Device is not connected to a network. Loading posts from Room database",
                     Toast.LENGTH_SHORT,
                 ).show()
@@ -105,7 +111,7 @@ class FeedActivity : AppCompatActivity() {
     }
 
     private fun fetchPostsOnline() {
-        RetrofitApiClient.apiService.fetchPosts().enqueue(
+        RetrofitApiClient.postsApiService.fetchPosts().enqueue(
             object : retrofit2.Callback<PostResponse> {
                 override fun onResponse(
                     call: Call<PostResponse>,
@@ -134,7 +140,7 @@ class FeedActivity : AppCompatActivity() {
                             Log.d("dbStatus", "Pushed ${dbPosts.size} posts into database")
                         }
                     } else {
-                        Toast.makeText(this@FeedActivity, "Failed to load posts", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PostFeedActivity, "Failed to load posts", Toast.LENGTH_SHORT).show()
                         fetchPostsOffline() // Fallback to offline if API fails
                     }
                 }
@@ -144,7 +150,7 @@ class FeedActivity : AppCompatActivity() {
                     t: Throwable,
                 ) {
                     Log.e("apiCall", t.message.toString())
-                    Toast.makeText(this@FeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PostFeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
                     fetchPostsOffline() // Fallback to offline on failure
                 }
             },

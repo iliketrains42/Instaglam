@@ -9,4 +9,6 @@
     <string name="shared_preferences_file_name">loginStatus</string>
     <string name="logged_in_user">loggedInUser</string>
     <string name="sign_out_button_text">Sign Out</string>
+    <string name="reels_button_text">Reels</string>
+    <string name="posts_button_text">Posts</string>
 </resources>

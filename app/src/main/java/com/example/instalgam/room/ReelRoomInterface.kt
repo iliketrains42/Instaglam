@@ -11,85 +11,81 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.instalgam.R
-import com.example.instalgam.apiClient.LikeBody
+import com.example.instalgam.apiClient.LikeReelBody
 import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.LikeResponse
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.Dispatcher
 import retrofit2.Call
 import retrofit2.Response
-import retrofit2.Retrofit
 
 @Entity
-data class DatabasePost(
-    @PrimaryKey val postId: String,
+data class DatabaseReel(
+    @PrimaryKey val reelId: String,
     @ColumnInfo(name = "user_name") val userName: String,
     @ColumnInfo(name = "profile_picture") val profilePicture: String,
-    @ColumnInfo(name = "post_image") val postImage: String,
+    @ColumnInfo(name = "reel_video") val reelVideo: String,
     @ColumnInfo(name = "like_count") var likeCount: Int,
     @ColumnInfo(name = "liked_by_user") var likedByUser: Boolean,
 )
 
 @Dao
-interface PostDao {
-    @Query("SELECT * FROM DatabasePost")
-    suspend fun fetchAll(): List<DatabasePost>
+interface ReelDao {
+    @Query("SELECT * FROM DatabaseReel")
+    suspend fun fetchAll(): List<DatabaseReel>
 
-    @Query("""UPDATE DatabasePost SET like_count = like_count + 1, liked_by_user = 1 WHERE postId = :postID""")
-    suspend fun like(postID: String)
+    @Query("""UPDATE DatabaseReel SET like_count = like_count + 1, liked_by_user = 1 WHERE reelId = :reelID""")
+    suspend fun like(reelID: String)
 
-    @Query("""UPDATE DatabasePost SET like_count = like_count - 1, liked_by_user = 0 WHERE postId = :postID""")
-    suspend fun dislike(postID: String)
+    @Query("""UPDATE DatabaseReel SET like_count = like_count - 1, liked_by_user = 0 WHERE reelId = :reelID""")
+    suspend fun dislike(reelID: String)
 
     @Insert
-    suspend fun insertAll(posts: List<DatabasePost>)
+    suspend fun insertAll(reels: List<DatabaseReel>)
 
-    @Query("DELETE FROM DatabasePost")
+    @Query("DELETE FROM DatabaseReel")
     suspend fun deleteAll()
 }
 
-@Database(entities = [DatabasePost::class], version = 1)
-abstract class PostDatabase : RoomDatabase() {
-    abstract fun postDao(): PostDao
+@Database(entities = [DatabaseReel::class], version = 1)
+abstract class ReelDatabase : RoomDatabase() {
+    abstract fun reelDao(): ReelDao
 
     companion object {
         @Volatile // reads and writes are atomic
-        private var instance: PostDatabase? = null
+        private var instance: ReelDatabase? = null
 
-        fun getInstance(context: Context): PostDatabase =
+        fun getInstance(context: Context): ReelDatabase =
             instance ?: synchronized(this) {
                 // only one thread can enter this critical section
                 instance ?: Room
                     .databaseBuilder(
                         context,
-                        PostDatabase::class.java,
-                        "posts-database",
+                        ReelDatabase::class.java,
+                        "reels-database",
                     ).build()
                     .also { instance = it }
             }
     }
 }
 
-class PostDatabaseHelper(
-    private val postDao: PostDao,
+class ReelDatabaseHelper(
+    private val reelDao: ReelDao,
 ) {
-    suspend fun getPosts(): List<DatabasePost> = postDao.fetchAll()
+    suspend fun getReels(): List<DatabaseReel> = reelDao.fetchAll()
 
-    suspend fun savePosts(posts: List<DatabasePost>) {
-        postDao.deleteAll()
-        postDao.insertAll(posts)
+    suspend fun saveReels(reels: List<DatabaseReel>) {
+        reelDao.deleteAll()
+        reelDao.insertAll(reels)
     }
 
-    fun likePost(
-        postID: String,
+    fun likeReel(
+        reelID: String,
         onSuccess: () -> Unit,
         onFailing: () -> Unit,
     ) {
-        val call = RetrofitApiClient.apiService.likePost(LikeBody(true, postID))
+        val call = RetrofitApiClient.reelsApiService.likeReel(LikeReelBody(true, reelID))
         call.enqueue(
             object : retrofit2.Callback<LikeResponse> {
                 override fun onResponse(
@@ -99,8 +95,8 @@ class PostDatabaseHelper(
                     // UI is reset if the call is unsuccessful
                     if (response.isSuccessful) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            postDao.like(postID)
-                            Log.d("dbStatus", "$postID is successfully liked")
+                            reelDao.like(reelID)
+                            Log.d("dbStatus", "$reelID is successfully liked")
                         }
                         onSuccess()
                     } else {
@@ -118,12 +114,12 @@ class PostDatabaseHelper(
         )
     }
 
-    fun dislikePost(
-        postID: String,
+    fun dislikeReel(
+        reelID: String,
         onSuccess: () -> Unit,
         onFailing: () -> Unit,
     ) {
-        val call = RetrofitApiClient.apiService.dislikePost()
+        val call = RetrofitApiClient.reelsApiService.dislikeReel()
         call.enqueue(
             object : retrofit2.Callback<LikeResponse> {
                 override fun onResponse(
@@ -133,8 +129,8 @@ class PostDatabaseHelper(
                     // UI is reset if the call is unsuccessful
                     if (response.isSuccessful) {
                         CoroutineScope(Dispatchers.IO).launch {
-                            postDao.dislike(postID)
-                            Log.d("dbStatus", "$postID is successfully disliked")
+                            reelDao.dislike(reelID)
+                            Log.d("dbStatus", "$reelID is successfully disliked")
                         }
                         onSuccess()
                     } else {

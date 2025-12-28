@@ -2,6 +2,7 @@ package com.example.instalgam.apiClient
 
 import com.example.instalgam.model.LikeResponse
 import com.example.instalgam.model.PostResponse
+import com.example.instalgam.model.ReelResponse
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.Retrofit
@@ -21,14 +22,22 @@ object RetrofitApiClient {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     }
-    val apiService: PostsApiService by lazy {
+    val postsApiService: PostsApiService by lazy {
         retrofit.create(PostsApiService::class.java)
+    }
+    val reelsApiService: ReelsApiService by lazy {
+        retrofit.create(ReelsApiService::class.java)
     }
 }
 
 data class LikeBody(
     val like: Boolean,
     val post_id: String,
+)
+
+data class LikeReelBody(
+    val like: Boolean,
+    val reel_id: String,
 )
 
 interface PostsApiService {
@@ -42,4 +51,17 @@ interface PostsApiService {
 
     @DELETE("dislike")
     fun dislikePost(): retrofit2.Call<LikeResponse>
+}
+
+interface ReelsApiService {
+    @GET("reels")
+    fun fetchReels(): retrofit2.Call<ReelResponse>
+
+    @POST("like")
+    fun likeReel(
+        @Body likeReelBody: LikeReelBody,
+    ): retrofit2.Call<LikeResponse>
+
+    @DELETE("dislike")
+    fun dislikeReel(): retrofit2.Call<LikeResponse>
 }
