@@ -67,6 +67,16 @@ class ReelsFeedActivity : AppCompatActivity() {
         checkConnectivityStatus()
     }
 
+    override fun onPause() {
+        super.onPause()
+        reelAdapter.pausePlayers()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        reelAdapter.resumePlayers()
+    }
+
     private fun checkConnectivityStatus() {
         val connectivityManager = getSystemService(ConnectivityManager::class.java)
         if (connectivityManager.activeNetwork == null) {
@@ -115,7 +125,7 @@ class ReelsFeedActivity : AppCompatActivity() {
                         }
                     } else {
                         Toast.makeText(this@ReelsFeedActivity, "Failed to load reels", Toast.LENGTH_SHORT).show()
-                        fetchReelsOffline() // Fallback to offline if API fails
+                        fetchReelsOffline()
                     }
                 }
 
@@ -125,7 +135,7 @@ class ReelsFeedActivity : AppCompatActivity() {
                 ) {
                     Log.e("apiCall", t.message.toString())
                     Toast.makeText(this@ReelsFeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
-                    fetchReelsOffline() // Fallback to offline on failure
+                    fetchReelsOffline()
                 }
             },
         )

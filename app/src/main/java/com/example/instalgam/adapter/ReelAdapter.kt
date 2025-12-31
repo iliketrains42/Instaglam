@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -26,6 +27,8 @@ class ReelAdapter(
     val context: Context,
     val elements: MutableList<Reel>,
 ) : RecyclerView.Adapter<ReelAdapter.Holder>() {
+    private var currentHolder: Holder? = null
+
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
@@ -41,6 +44,8 @@ class ReelAdapter(
     ) {
         val reel = elements[position]
 
+        var isMuted: Boolean = false
+
         holder.player?.release()
 
         holder.likeCount.text = reel.likeCount.toString()
@@ -50,6 +55,8 @@ class ReelAdapter(
         } else {
             holder.likeButton.setImageResource(R.drawable.unliked_heart)
         }
+
+        holder.muteButton.setImageResource(R.drawable.unmuted)
 
         holder.username.text = reel.userName
 
@@ -118,9 +125,10 @@ class ReelAdapter(
         holder.pfpImage.load(reel.profilePicture) {
             transformations(CircleCropTransformation())
         }
+
         holder.player = ExoPlayer.Builder(context).build()
         holder.reelVideo.player = holder.player
-        val uri = Uri.parse(reel.reelVideo)
+        val uri = reel.reelVideo.toUri()
         val mediaItem = MediaItem.fromUri(uri)
         holder.player?.apply {
             setMediaItem(mediaItem)
@@ -128,6 +136,26 @@ class ReelAdapter(
             playWhenReady = false
             repeatMode = Player.REPEAT_MODE_ONE
             volume = 1f
+        }
+
+        holder.reelVideo.setOnClickListener {
+            if (true == holder.player?.isPlaying) {
+                holder.player?.pause()
+            } else {
+                holder.player?.play()
+            }
+        }
+
+        holder.muteButton.setOnClickListener {
+            if (isMuted) {
+                holder.muteButton.setImageResource(R.drawable.unmuted)
+                holder.player?.volume = 1f
+                isMuted = false
+            } else {
+                holder.muteButton.setImageResource(R.drawable.muted)
+                holder.player?.volume = 0f
+                isMuted = true
+            }
         }
     }
 
@@ -143,14 +171,27 @@ class ReelAdapter(
 
     override fun onViewAttachedToWindow(holder: Holder) {
         super.onViewAttachedToWindow(holder)
+        currentHolder = holder
         holder.player?.prepare()
         holder.player?.play()
+        holder.player?.volume = 1f
     }
 
     override fun onViewDetachedFromWindow(holder: Holder) {
         super.onViewDetachedFromWindow(holder)
+        if (holder == currentHolder) {
+            currentHolder = null
+        }
         holder.player?.stop()
         holder.player?.volume = 0f
+    }
+
+    fun pausePlayers() {
+        currentHolder?.player?.pause()
+    }
+
+    fun resumePlayers() {
+        currentHolder?.player?.play()
     }
 
     inner class Holder(
@@ -162,5 +203,6 @@ class ReelAdapter(
         val pfpImage: ImageView = view.findViewById(R.id.profilePictureImage)
         val reelVideo: PlayerView = view.findViewById(R.id.reelVideo)
         var player: ExoPlayer? = null
+        val muteButton: ImageView = view.findViewById(R.id.muteButton)
     }
 }
