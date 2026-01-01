@@ -143,22 +143,23 @@ class ReelsFeedActivity : AppCompatActivity() {
 
     private fun fetchReelsOffline() {
         lifecycleScope.launch {
-            val dbReels = dbHelper.getReels()
-            Log.d("dbStatus", "Loaded ${dbReels.size} reels from database")
-            reels.clear()
-            reels.addAll(
-                dbReels.map {
-                    Reel(
-                        it.reelId,
-                        it.userName,
-                        it.profilePicture,
-                        it.reelVideo,
-                        it.likeCount,
-                        it.likedByUser,
-                    )
-                },
-            )
-            reelAdapter.notifyDataSetChanged()
+            dbHelper.getReels().collect { dbReels ->
+                Log.d("dbStatus", "Loaded ${dbReels.size} reels from database")
+                reels.clear()
+                reels.addAll(
+                    dbReels.map {
+                        Reel(
+                            it.reelId,
+                            it.userName,
+                            it.profilePicture,
+                            it.reelVideo,
+                            it.likeCount,
+                            it.likedByUser,
+                        )
+                    },
+                )
+                reelAdapter.notifyDataSetChanged()
+            }
         }
     }
 }

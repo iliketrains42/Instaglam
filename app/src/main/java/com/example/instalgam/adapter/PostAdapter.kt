@@ -46,6 +46,7 @@ class PostAdapter(
 
         val db = PostDatabase.getInstance(context.applicationContext)
         val dbHelper = PostDatabaseHelper(db.postDao())
+
         holder.likeButton.setOnClickListener {
             // Save previous state in case we need to rollback
             val previousLikedState = post.likedByUser

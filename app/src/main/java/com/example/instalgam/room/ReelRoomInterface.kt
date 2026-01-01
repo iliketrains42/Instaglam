@@ -16,6 +16,7 @@ import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.LikeResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
@@ -33,7 +34,7 @@ data class DatabaseReel(
 @Dao
 interface ReelDao {
     @Query("SELECT * FROM DatabaseReel")
-    suspend fun fetchAll(): List<DatabaseReel>
+    fun fetchAll(): Flow<List<DatabaseReel>>
 
     @Query("""UPDATE DatabaseReel SET like_count = like_count + 1, liked_by_user = 1 WHERE reelId = :reelID""")
     suspend fun like(reelID: String)
@@ -73,7 +74,7 @@ abstract class ReelDatabase : RoomDatabase() {
 class ReelDatabaseHelper(
     private val reelDao: ReelDao,
 ) {
-    suspend fun getReels(): List<DatabaseReel> = reelDao.fetchAll()
+    fun getReels(): Flow<List<DatabaseReel>> = reelDao.fetchAll()
 
     suspend fun saveReels(reels: List<DatabaseReel>) {
         reelDao.deleteAll()

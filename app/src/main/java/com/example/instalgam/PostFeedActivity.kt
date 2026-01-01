@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -62,9 +63,8 @@ class PostFeedActivity : AppCompatActivity() {
 
             val username = sp.getString(getString(R.string.logged_in_user), null)
 
-            with(sp.edit()) {
+            sp.edit {
                 putString(getString(R.string.logged_in_user), null)
-                apply()
             }
 
             startActivity(Intent(this, MainActivity::class.java))
@@ -119,11 +119,9 @@ class PostFeedActivity : AppCompatActivity() {
                 ) {
                     if (response.isSuccessful) {
                         val apiPosts = response.body()?.posts?.filterNotNull() ?: emptyList()
-
                         posts.clear()
                         posts.addAll(apiPosts)
                         postAdapter.notifyDataSetChanged()
-
                         lifecycleScope.launch {
                             val dbPosts =
                                 apiPosts.map {
@@ -136,12 +134,12 @@ class PostFeedActivity : AppCompatActivity() {
                                         it.likedByUser,
                                     )
                                 }
-                            dbHelper.savePosts(dbPosts)
                             Log.d("dbStatus", "Pushed ${dbPosts.size} posts into database")
+                            dbHelper.savePosts(dbPosts)
                         }
                     } else {
                         Toast.makeText(this@PostFeedActivity, "Failed to load posts", Toast.LENGTH_SHORT).show()
-                        fetchPostsOffline() // Fallback to offline if API fails
+                        fetchPostsOffline()
                     }
                 }
 
@@ -149,9 +147,9 @@ class PostFeedActivity : AppCompatActivity() {
                     call: Call<PostResponse>,
                     t: Throwable,
                 ) {
-                    Log.e("apiCall", t.message.toString())
                     Toast.makeText(this@PostFeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
-                    fetchPostsOffline() // Fallback to offline on failure
+                    fetchPostsOffline()
+                    Log.e("apiStatus", t.message.toString())
                 }
             },
         )
@@ -159,22 +157,24 @@ class PostFeedActivity : AppCompatActivity() {
 
     private fun fetchPostsOffline() {
         lifecycleScope.launch {
-            val dbPosts = dbHelper.getPosts()
-            Log.d("dbStatus", "Loaded ${dbPosts.size} posts from database")
-            posts.clear()
-            posts.addAll(
-                dbPosts.map {
-                    Post(
-                        it.postId,
-                        it.userName,
-                        it.profilePicture,
-                        it.postImage,
-                        it.likeCount,
-                        it.likedByUser,
-                    )
-                },
-            )
-            postAdapter.notifyDataSetChanged()
+            dbHelper.getPosts().collect { dbPosts ->
+                Log.d("dbStatus", "Loaded ${dbPosts.size} posts from database")
+
+                posts.clear()
+                posts.addAll(
+                    dbPosts.map {
+                        Post(
+                            it.postId,
+                            it.userName,
+                            it.profilePicture,
+                            it.postImage,
+                            it.likeCount,
+                            it.likedByUser,
+                        )
+                    },
+                )
+                postAdapter.notifyDataSetChanged()
+            }
         }
     }
 }

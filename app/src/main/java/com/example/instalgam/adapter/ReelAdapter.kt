@@ -174,6 +174,7 @@ class ReelAdapter(
         currentHolder = holder
         holder.player?.prepare()
         holder.player?.play()
+        holder.muteButton.setImageResource(R.drawable.unmuted)
         holder.player?.volume = 1f
     }
 
@@ -183,6 +184,7 @@ class ReelAdapter(
             currentHolder = null
         }
         holder.player?.stop()
+        holder.muteButton.setImageResource(R.drawable.muted)
         holder.player?.volume = 0f
     }
 

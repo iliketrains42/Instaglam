@@ -16,6 +16,7 @@ import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.LikeResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Response
@@ -33,7 +34,7 @@ data class DatabasePost(
 @Dao
 interface PostDao {
     @Query("SELECT * FROM DatabasePost")
-    suspend fun fetchAll(): List<DatabasePost>
+    fun fetchAll(): Flow<List<DatabasePost>>
 
     @Query("""UPDATE DatabasePost SET like_count = like_count + 1, liked_by_user = 1 WHERE postId = :postID""")
     suspend fun like(postID: String)
@@ -73,7 +74,7 @@ abstract class PostDatabase : RoomDatabase() {
 class PostDatabaseHelper(
     private val postDao: PostDao,
 ) {
-    suspend fun getPosts(): List<DatabasePost> = postDao.fetchAll()
+    fun getPosts(): Flow<List<DatabasePost>> = postDao.fetchAll()
 
     suspend fun savePosts(posts: List<DatabasePost>) {
         postDao.deleteAll()
@@ -85,33 +86,32 @@ class PostDatabaseHelper(
         onSuccess: () -> Unit,
         onFailing: () -> Unit,
     ) {
-        val call = RetrofitApiClient.postsApiService.likePost(LikeBody(true, postID))
-        call.enqueue(
-            object : retrofit2.Callback<LikeResponse> {
-                override fun onResponse(
-                    call: Call<LikeResponse>,
-                    response: Response<LikeResponse>,
-                ) {
-                    // UI is reset if the call is unsuccessful
-                    if (response.isSuccessful) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            postDao.like(postID)
-                            Log.d("dbStatus", "$postID is successfully liked")
+        RetrofitApiClient.postsApiService
+            .likePost(LikeBody(true, postID))
+            .enqueue(
+                object : retrofit2.Callback<LikeResponse> {
+                    override fun onResponse(
+                        call: Call<LikeResponse>,
+                        response: Response<LikeResponse>,
+                    ) {
+                        if (response.isSuccessful) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                postDao.like(postID)
+                            }
+                            onSuccess()
+                        } else {
+                            onFailing()
                         }
-                        onSuccess()
-                    } else {
+                    }
+
+                    override fun onFailure(
+                        call: Call<LikeResponse>,
+                        t: Throwable,
+                    ) {
                         onFailing()
                     }
-                }
-
-                override fun onFailure(
-                    call: Call<LikeResponse>,
-                    t: Throwable,
-                ) {
-                    onFailing()
-                }
-            },
-        )
+                },
+            )
     }
 
     fun dislikePost(
@@ -119,32 +119,31 @@ class PostDatabaseHelper(
         onSuccess: () -> Unit,
         onFailing: () -> Unit,
     ) {
-        val call = RetrofitApiClient.postsApiService.dislikePost()
-        call.enqueue(
-            object : retrofit2.Callback<LikeResponse> {
-                override fun onResponse(
-                    call: Call<LikeResponse>,
-                    response: Response<LikeResponse>,
-                ) {
-                    // UI is reset if the call is unsuccessful
-                    if (response.isSuccessful) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            postDao.dislike(postID)
-                            Log.d("dbStatus", "$postID is successfully disliked")
+        RetrofitApiClient.postsApiService
+            .dislikePost()
+            .enqueue(
+                object : retrofit2.Callback<LikeResponse> {
+                    override fun onResponse(
+                        call: Call<LikeResponse>,
+                        response: Response<LikeResponse>,
+                    ) {
+                        if (response.isSuccessful) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                postDao.dislike(postID)
+                            }
+                            onSuccess()
+                        } else {
+                            onFailing()
                         }
-                        onSuccess()
-                    } else {
+                    }
+
+                    override fun onFailure(
+                        call: Call<LikeResponse>,
+                        t: Throwable,
+                    ) {
                         onFailing()
                     }
-                }
-
-                override fun onFailure(
-                    call: Call<LikeResponse>,
-                    t: Throwable,
-                ) {
-                    onFailing()
-                }
-            },
-        )
+                },
+            )
     }
 }
