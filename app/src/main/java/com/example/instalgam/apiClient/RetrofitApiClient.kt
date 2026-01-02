@@ -5,6 +5,7 @@ import com.example.instalgam.model.PostResponse
 import com.example.instalgam.model.ReelResponse
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.Body
@@ -45,12 +46,12 @@ interface PostsApiService {
     fun fetchPosts(): retrofit2.Call<PostResponse>
 
     @POST("like")
-    fun likePost(
+    suspend fun likePost(
         @Body likeBody: LikeBody,
-    ): retrofit2.Call<LikeResponse>
+    ): Response<LikeResponse>
 
     @DELETE("dislike")
-    fun dislikePost(): retrofit2.Call<LikeResponse>
+    suspend fun dislikePost(): Response<LikeResponse>
 }
 
 interface ReelsApiService {

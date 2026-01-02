@@ -1,5 +1,6 @@
 package com.example.instalgam.adapter
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
@@ -16,6 +17,14 @@ import com.example.instalgam.model.Post
 import com.example.instalgam.room.PostDatabase
 import com.example.instalgam.room.PostDatabaseHelper
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 
 class PostAdapter(
     val context: Context,
@@ -48,62 +57,53 @@ class PostAdapter(
         val dbHelper = PostDatabaseHelper(db.postDao())
 
         holder.likeButton.setOnClickListener {
-            // Save previous state in case we need to rollback
             val previousLikedState = post.likedByUser
             val previousLikeCount = post.likeCount
 
-            post.likeCount += if (!post.likedByUser) 1 else -1
-            holder.likeCount.text = post.likeCount.toString()
-            holder.likeButton.setImageResource(if (!post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart)
+            post.likedByUser = !previousLikedState
+            post.likeCount += if (post.likedByUser) 1 else -1
 
-            fun rollback() {
-                // Restore previous state
+            holder.likeCount.text = post.likeCount.toString()
+            holder.likeButton.setImageResource(
+                if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+            )
+
+            fun rollbackUI() {
                 post.likedByUser = previousLikedState
                 post.likeCount = previousLikeCount
-
                 holder.likeCount.text = post.likeCount.toString()
                 holder.likeButton.setImageResource(
-                    if (post.likedByUser) {
-                        R.drawable.liked_heart
+                    if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+                )
+                notifyItemChanged(position)
+                val rootView =
+                    (holder.itemView.context as Activity)
+                        .findViewById<View>(android.R.id.content)
+
+                Snackbar.make(rootView, "Action failed. Please try again.", Snackbar.LENGTH_SHORT).show()
+            }
+
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    val isSuccess =
+                        withTimeoutOrNull(2000L) {
+                            if (previousLikedState) {
+                                dbHelper.dislikePost(post.postId)
+                            } else {
+                                dbHelper.likePost(post.postId)
+                            }
+                        } ?: false
+
+                    if (isSuccess) {
+                        Log.d("apiStatus", "Sync successful")
                     } else {
-                        R.drawable.unliked_heart
-                    },
-                )
-
-                Snackbar
-                    .make(
-                        holder.itemView,
-                        "API Call failed!",
-                        Snackbar.LENGTH_SHORT,
-                    ).show()
-                Log.e("apiStatus", "API call failed")
-            }
-            if (!post.likedByUser) {
-                dbHelper.likePost(
-                    post.postId,
-                    onSuccess = {
-                        Log.d("apiStatus", "Like API succeeded")
-                    },
-                    onFailing = {
-                        rollback()
-                    },
-                )
-            } else {
-                dbHelper.dislikePost(
-                    post.postId,
-                    onSuccess = {
-                        Log.d("apiStatus", "Dislike API succeeded")
-                    },
-                    onFailing = {
-                        rollback()
-                    },
-                )
-            }
-
-            if (post.likedByUser) {
-                post.likedByUser = false
-            } else {
-                post.likedByUser = true
+                        Log.e("apiStatus", "Sync failed, rolling back UI")
+                        rollbackUI()
+                    }
+                } catch (e: Exception) {
+                    Log.e("apiStatus", "Error: ${e.message}")
+                    rollbackUI()
+                }
             }
         }
 

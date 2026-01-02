@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.instalgam.adapter.ReelAdapter
@@ -50,9 +51,8 @@ class ReelsFeedActivity : AppCompatActivity() {
 
             val username = sp.getString(getString(R.string.logged_in_user), null)
 
-            with(sp.edit()) {
+            sp.edit {
                 putString(getString(R.string.logged_in_user), null)
-                apply()
             }
 
             startActivity(Intent(this, MainActivity::class.java))

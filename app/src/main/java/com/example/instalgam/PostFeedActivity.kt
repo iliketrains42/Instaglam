@@ -30,7 +30,6 @@ class PostFeedActivity : AppCompatActivity() {
     private lateinit var postAdapter: PostAdapter
     private lateinit var reelsButton: Button
     private val posts: MutableList<Post> = mutableListOf()
-
     private lateinit var dbHelper: PostDatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +75,9 @@ class PostFeedActivity : AppCompatActivity() {
             val intent = Intent(this@PostFeedActivity, ReelsFeedActivity::class.java)
             startActivity(intent)
         }
+        lifecycleScope.launch{
+            fetchPostsOffline()
+        }
         checkConnectivityStatus()
     }
 
@@ -89,7 +91,7 @@ class PostFeedActivity : AppCompatActivity() {
                     "Device is not connected to a network. Loading posts from Room database",
                     Toast.LENGTH_SHORT,
                 ).show()
-            fetchPostsOffline()
+//            fetchPostsOffline()
         } else {
             Log.d("networkStatus", "Network is available")
             fetchPostsOnline()
@@ -139,7 +141,7 @@ class PostFeedActivity : AppCompatActivity() {
                         }
                     } else {
                         Toast.makeText(this@PostFeedActivity, "Failed to load posts", Toast.LENGTH_SHORT).show()
-                        fetchPostsOffline()
+//                        fetchPostsOffline()
                     }
                 }
 
@@ -148,33 +150,30 @@ class PostFeedActivity : AppCompatActivity() {
                     t: Throwable,
                 ) {
                     Toast.makeText(this@PostFeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
-                    fetchPostsOffline()
+//                    fetchPostsOffline()
                     Log.e("apiStatus", t.message.toString())
                 }
             },
         )
     }
 
-    private fun fetchPostsOffline() {
-        lifecycleScope.launch {
-            dbHelper.getPosts().collect { dbPosts ->
-                Log.d("dbStatus", "Loaded ${dbPosts.size} posts from database")
+    private suspend fun fetchPostsOffline() {
+        val dbPosts = dbHelper.getPosts()
+        Log.d("dbStatus", "Loaded ${dbPosts.size} posts from database")
 
-                posts.clear()
-                posts.addAll(
-                    dbPosts.map {
-                        Post(
-                            it.postId,
-                            it.userName,
-                            it.profilePicture,
-                            it.postImage,
-                            it.likeCount,
-                            it.likedByUser,
-                        )
-                    },
+        posts.clear()
+        posts.addAll(
+            dbPosts.map {
+                Post(
+                    it.postId,
+                    it.userName,
+                    it.profilePicture,
+                    it.postImage,
+                    it.likeCount,
+                    it.likedByUser,
                 )
-                postAdapter.notifyDataSetChanged()
-            }
-        }
+            },
+        )
+        postAdapter.notifyDataSetChanged()
     }
 }

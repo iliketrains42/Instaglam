@@ -1,7 +1,6 @@
 package com.example.instalgam.adapter
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -56,7 +55,9 @@ class ReelAdapter(
             holder.likeButton.setImageResource(R.drawable.unliked_heart)
         }
 
-        holder.muteButton.setImageResource(R.drawable.unmuted)
+        holder.muteButton.load(R.drawable.unmuted) {
+            transformations(CircleCropTransformation())
+        }
 
         holder.username.text = reel.userName
 
@@ -148,11 +149,17 @@ class ReelAdapter(
 
         holder.muteButton.setOnClickListener {
             if (isMuted) {
-                holder.muteButton.setImageResource(R.drawable.unmuted)
+                holder.muteButton.load(R.drawable.unmuted) {
+                    transformations(CircleCropTransformation())
+                }
+
                 holder.player?.volume = 1f
                 isMuted = false
             } else {
-                holder.muteButton.setImageResource(R.drawable.muted)
+                holder.muteButton.load(R.drawable.muted) {
+                    transformations(CircleCropTransformation())
+                }
+
                 holder.player?.volume = 0f
                 isMuted = true
             }
@@ -174,7 +181,11 @@ class ReelAdapter(
         currentHolder = holder
         holder.player?.prepare()
         holder.player?.play()
-        holder.muteButton.setImageResource(R.drawable.unmuted)
+
+        holder.muteButton.load(R.drawable.unmuted) {
+            transformations(CircleCropTransformation())
+        }
+
         holder.player?.volume = 1f
     }
 
@@ -184,7 +195,11 @@ class ReelAdapter(
             currentHolder = null
         }
         holder.player?.stop()
-        holder.muteButton.setImageResource(R.drawable.muted)
+
+        holder.muteButton.load(R.drawable.muted) {
+            transformations(CircleCropTransformation())
+        }
+
         holder.player?.volume = 0f
     }
 
