@@ -19,11 +19,7 @@ import com.example.instalgam.room.PostDatabaseHelper
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 
 class PostAdapter(
@@ -75,7 +71,6 @@ class PostAdapter(
                 holder.likeButton.setImageResource(
                     if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
                 )
-                notifyItemChanged(position)
                 val rootView =
                     (holder.itemView.context as Activity)
                         .findViewById<View>(android.R.id.content)

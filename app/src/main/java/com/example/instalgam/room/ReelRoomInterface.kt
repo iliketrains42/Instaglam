@@ -13,13 +13,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.instalgam.apiClient.LikeReelBody
 import com.example.instalgam.apiClient.RetrofitApiClient
-import com.example.instalgam.model.LikeResponse
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Response
+import kotlinx.coroutines.withContext
 
 @Entity
 data class DatabaseReel(
@@ -34,7 +29,7 @@ data class DatabaseReel(
 @Dao
 interface ReelDao {
     @Query("SELECT * FROM DatabaseReel")
-    fun fetchAll(): Flow<List<DatabaseReel>>
+    suspend fun fetchAll(): List<DatabaseReel>
 
     @Query("""UPDATE DatabaseReel SET like_count = like_count + 1, liked_by_user = 1 WHERE reelId = :reelID""")
     suspend fun like(reelID: String)
@@ -74,78 +69,48 @@ abstract class ReelDatabase : RoomDatabase() {
 class ReelDatabaseHelper(
     private val reelDao: ReelDao,
 ) {
-    fun getReels(): Flow<List<DatabaseReel>> = reelDao.fetchAll()
+    suspend fun getReels(): List<DatabaseReel> = reelDao.fetchAll()
 
     suspend fun saveReels(reels: List<DatabaseReel>) {
         reelDao.deleteAll()
         reelDao.insertAll(reels)
     }
 
-    fun likeReel(
-        reelID: String,
-        onSuccess: () -> Unit,
-        onFailing: () -> Unit,
-    ) {
-        val call = RetrofitApiClient.reelsApiService.likeReel(LikeReelBody(true, reelID))
-        call.enqueue(
-            object : retrofit2.Callback<LikeResponse> {
-                override fun onResponse(
-                    call: Call<LikeResponse>,
-                    response: Response<LikeResponse>,
-                ) {
-                    // UI is reset if the call is unsuccessful
-                    if (response.isSuccessful) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            reelDao.like(reelID)
-                            Log.d("dbStatus", "$reelID is successfully liked")
-                        }
-                        onSuccess()
-                    } else {
-                        onFailing()
-                    }
-                }
+    suspend fun likeReel(reelID: String): Boolean =
+        withContext(Dispatchers.IO) {
+            reelDao.like(reelID)
 
-                override fun onFailure(
-                    call: Call<LikeResponse>,
-                    t: Throwable,
-                ) {
-                    onFailing()
-                }
-            },
-        )
-    }
+            Log.d("dbStatus", "$reelID liked")
+            try {
+                val response =
+                    RetrofitApiClient.reelsApiService
+                        .likeReel(LikeReelBody(true, reelID))
 
-    fun dislikeReel(
-        reelID: String,
-        onSuccess: () -> Unit,
-        onFailing: () -> Unit,
-    ) {
-        val call = RetrofitApiClient.reelsApiService.dislikeReel()
-        call.enqueue(
-            object : retrofit2.Callback<LikeResponse> {
-                override fun onResponse(
-                    call: Call<LikeResponse>,
-                    response: Response<LikeResponse>,
-                ) {
-                    // UI is reset if the call is unsuccessful
-                    if (response.isSuccessful) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            reelDao.dislike(reelID)
-                            Log.d("dbStatus", "$reelID is successfully disliked")
-                        }
-                        onSuccess()
-                    } else {
-                        onFailing()
-                    }
+                if (response.isSuccessful) {
+                    true
+                } else {
+                    false
                 }
+            } catch (e: Exception) {
+                false
+            }
+        }
 
-                override fun onFailure(
-                    call: Call<LikeResponse>,
-                    t: Throwable,
-                ) {
-                    onFailing()
+    suspend fun dislikeReel(reelID: String): Boolean =
+
+        withContext(Dispatchers.IO) {
+            reelDao.dislike(reelID)
+            Log.d("dbStatus", "$reelID disliked")
+            try {
+                val response = RetrofitApiClient.reelsApiService.dislikeReel()
+
+                if (response.isSuccessful) {
+                    true
+                } else {
+                    false
                 }
-            },
-        )
-    }
+            } catch (e: Exception) {
+                false
+            }
+        }
 }

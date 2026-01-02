@@ -64,6 +64,9 @@ class ReelsFeedActivity : AppCompatActivity() {
             val intent = Intent(this@ReelsFeedActivity, PostFeedActivity::class.java)
             startActivity(intent)
         }
+        lifecycleScope.launch {
+            fetchReelsOffline()
+        }
         checkConnectivityStatus()
     }
 
@@ -87,7 +90,6 @@ class ReelsFeedActivity : AppCompatActivity() {
                     "Device is not connected to a network. Loading reels from Room database",
                     Toast.LENGTH_SHORT,
                 ).show()
-            fetchReelsOffline()
         } else {
             Log.d("networkStatus", "Network is available")
             fetchReelsOnline()
@@ -125,7 +127,6 @@ class ReelsFeedActivity : AppCompatActivity() {
                         }
                     } else {
                         Toast.makeText(this@ReelsFeedActivity, "Failed to load reels", Toast.LENGTH_SHORT).show()
-                        fetchReelsOffline()
                     }
                 }
 
@@ -135,31 +136,28 @@ class ReelsFeedActivity : AppCompatActivity() {
                 ) {
                     Log.e("apiCall", t.message.toString())
                     Toast.makeText(this@ReelsFeedActivity, "An error occurred: ${t.message}", Toast.LENGTH_SHORT).show()
-                    fetchReelsOffline()
                 }
             },
         )
     }
 
-    private fun fetchReelsOffline() {
-        lifecycleScope.launch {
-            dbHelper.getReels().collect { dbReels ->
-                Log.d("dbStatus", "Loaded ${dbReels.size} reels from database")
-                reels.clear()
-                reels.addAll(
-                    dbReels.map {
-                        Reel(
-                            it.reelId,
-                            it.userName,
-                            it.profilePicture,
-                            it.reelVideo,
-                            it.likeCount,
-                            it.likedByUser,
-                        )
-                    },
+    private suspend fun fetchReelsOffline() {
+        val dbReels = dbHelper.getReels()
+        Log.d("dbStatus", "Loaded ${dbReels.size} reels from database")
+
+        reels.clear()
+        reels.addAll(
+            dbReels.map {
+                Reel(
+                    it.reelId,
+                    it.userName,
+                    it.profilePicture,
+                    it.reelVideo,
+                    it.likeCount,
+                    it.likedByUser,
                 )
-                reelAdapter.notifyDataSetChanged()
-            }
-        }
+            },
+        )
+        reelAdapter.notifyDataSetChanged()
     }
 }

@@ -1,5 +1,6 @@
 package com.example.instalgam.adapter
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
@@ -21,6 +22,10 @@ import com.example.instalgam.model.Reel
 import com.example.instalgam.room.ReelDatabase
 import com.example.instalgam.room.ReelDatabaseHelper
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class ReelAdapter(
     val context: Context,
@@ -60,66 +65,55 @@ class ReelAdapter(
         }
 
         holder.username.text = reel.userName
-
         val db = ReelDatabase.getInstance(context.applicationContext)
         val dbHelper = ReelDatabaseHelper(db.reelDao())
         holder.likeButton.setOnClickListener {
-            // Save previous state in case we need to rollback
             val previousLikedState = reel.likedByUser
             val previousLikeCount = reel.likeCount
 
-            reel.likeCount += if (!reel.likedByUser) 1 else -1
-            holder.likeCount.text = reel.likeCount.toString()
-            holder.likeButton.setImageResource(if (!reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart)
+            reel.likedByUser = !previousLikedState
+            reel.likeCount += if (reel.likedByUser) 1 else -1
 
-            fun rollback() {
-                // Restore previous state
+            holder.likeCount.text = reel.likeCount.toString()
+            holder.likeButton.setImageResource(
+                if (reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+            )
+
+            fun rollbackUI() {
                 reel.likedByUser = previousLikedState
                 reel.likeCount = previousLikeCount
-
                 holder.likeCount.text = reel.likeCount.toString()
                 holder.likeButton.setImageResource(
-                    if (reel.likedByUser) {
-                        R.drawable.liked_heart
+                    if (reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+                )
+                val rootView =
+                    (holder.itemView.context as Activity)
+                        .findViewById<View>(android.R.id.content)
+
+                Snackbar.make(rootView, "Action failed. Please try again.", Snackbar.LENGTH_SHORT).show()
+            }
+
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    val isSuccess =
+                        withTimeoutOrNull(2000L) {
+                            if (previousLikedState) {
+                                dbHelper.dislikeReel(reel.reelId)
+                            } else {
+                                dbHelper.likeReel(reel.reelId)
+                            }
+                        } ?: false
+
+                    if (isSuccess) {
+                        Log.d("apiStatus", "Sync successful")
                     } else {
-                        R.drawable.unliked_heart
-                    },
-                )
-
-                Snackbar
-                    .make(
-                        holder.itemView,
-                        "API Call failed!",
-                        Snackbar.LENGTH_SHORT,
-                    ).show()
-                Log.e("apiStatus", "API call failed")
-            }
-            if (!reel.likedByUser) {
-                dbHelper.likeReel(
-                    reel.reelId,
-                    onSuccess = {
-                        Log.d("apiStatus", "Like API succeeded")
-                    },
-                    onFailing = {
-                        rollback()
-                    },
-                )
-            } else {
-                dbHelper.dislikeReel(
-                    reel.reelId,
-                    onSuccess = {
-                        Log.d("apiStatus", "Dislike API succeeded")
-                    },
-                    onFailing = {
-                        rollback()
-                    },
-                )
-            }
-
-            if (reel.likedByUser) {
-                reel.likedByUser = false
-            } else {
-                reel.likedByUser = true
+                        Log.e("apiStatus", "Sync failed, rolling back UI")
+                        rollbackUI()
+                    }
+                } catch (e: Exception) {
+                    Log.e("apiStatus", "Error: ${e.message}")
+                    rollbackUI()
+                }
             }
         }
 
