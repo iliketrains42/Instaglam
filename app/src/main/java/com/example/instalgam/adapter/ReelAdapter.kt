@@ -1,3 +1,5 @@
+@file:androidx.media3.common.util.UnstableApi
+
 package com.example.instalgam.adapter
 
 import android.app.Activity
@@ -11,13 +13,21 @@ import android.widget.TextView
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.RecyclerView
 import coil3.load
 import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
 import com.example.instalgam.R
+import com.example.instalgam.cache.ExoPlayerCache
 import com.example.instalgam.model.Reel
 import com.example.instalgam.room.ReelDatabase
 import com.example.instalgam.room.ReelDatabaseHelper
@@ -47,13 +57,9 @@ class ReelAdapter(
         position: Int,
     ) {
         val reel = elements[position]
-
         var isMuted: Boolean = false
-
         holder.player?.release()
-
         holder.likeCount.text = reel.likeCount.toString()
-
         if (reel.likedByUser) {
             holder.likeButton.setImageResource(R.drawable.liked_heart)
         } else {
@@ -121,7 +127,20 @@ class ReelAdapter(
             transformations(CircleCropTransformation())
         }
 
-        holder.player = ExoPlayer.Builder(context).build()
+        val upstreamFactory = DefaultDataSource.Factory(context)
+        val cacheDataSourceFactory =
+            CacheDataSource
+                .Factory()
+                .setCache(
+                    ExoPlayerCache.get(context),
+                ).setUpstreamDataSourceFactory(upstreamFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(cacheDataSourceFactory)
+        holder.player =
+            ExoPlayer
+                .Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
+
         holder.reelVideo.player = holder.player
         val uri = reel.reelVideo.toUri()
         val mediaItem = MediaItem.fromUri(uri)
