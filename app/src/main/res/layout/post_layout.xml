@@ -21,7 +21,6 @@
             android:paddingTop="70dp"
             android:padding="12dp">
 
-            <!-- Profile picture -->
             <ImageView
                 android:id="@+id/profilePictureImage"
                 android:layout_width="40dp"
@@ -31,7 +30,6 @@
                 app:layout_constraintTop_toTopOf="parent"
                 tools:srcCompat="@tools:sample/avatars" />
 
-            <!-- Username -->
             <TextView
                 android:id="@+id/usernameText"
                 android:layout_width="wrap_content"
@@ -73,13 +71,39 @@
                 android:id="@+id/likeCountText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="120 likes"
-                android:textSize="14sp"
                 android:layout_marginStart="8dp"
+                android:text="120"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="@id/likeButton"
                 app:layout_constraintStart_toEndOf="@id/likeButton"
-                app:layout_constraintTop_toTopOf="@id/likeButton"
-                app:layout_constraintBottom_toBottomOf="@id/likeButton" />
+                app:layout_constraintTop_toTopOf="@id/likeButton" />
 
+
+            <ImageView
+                android:id="@+id/comment"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="92dp"
+                android:layout_marginTop="8dp"
+                android:clickable="true"
+                android:contentDescription="@string/like_button"
+                android:focusable="true"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/postPicture"
+                tools:srcCompat="@android:drawable/btn_star_big_off" />
+
+            <ImageView
+                android:id="@+id/share"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="160dp"
+                android:layout_marginTop="8dp"
+                android:clickable="true"
+                android:contentDescription="@string/like_button"
+                android:focusable="true"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/postPicture"
+                tools:srcCompat="@android:drawable/btn_star_big_off" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 

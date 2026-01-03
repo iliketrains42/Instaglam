@@ -9,10 +9,13 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.example.instalgam.adapter.ReelAdapter
 import com.example.instalgam.apiClient.RetrofitApiClient
+import com.example.instalgam.connectivity.NetworkObserver
 import com.example.instalgam.model.Reel
 import com.example.instalgam.model.ReelResponse
 import com.example.instalgam.room.DatabaseReel
@@ -29,6 +32,7 @@ class ReelsFeedActivity : AppCompatActivity() {
     private lateinit var signOutButton: Button
     private lateinit var postsButton: Button
     private lateinit var reelAdapter: ReelAdapter
+    private lateinit var networkObserver: NetworkObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +72,30 @@ class ReelsFeedActivity : AppCompatActivity() {
             fetchReelsOffline()
         }
         checkConnectivityStatus()
+        networkObserver = NetworkObserver(applicationContext)
+        observeNetworkStatus()
+    }
+
+    private fun observeNetworkStatus() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var hasDisconnected = false
+                networkObserver.observe().collect { status ->
+                    if (!status) hasDisconnected = true
+                    if (status and hasDisconnected) {
+                        reelAdapter.likeUnsyncedPosts()
+                        Toast
+                            .makeText(
+                                this@ReelsFeedActivity,
+                                "Network is available, syncing posts with database",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+
+                        Log.d("networkStatus", "Network is available")
+                    }
+                }
+            }
+        }
     }
 
     override fun onPause() {

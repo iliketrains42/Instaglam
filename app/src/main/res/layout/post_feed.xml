@@ -12,6 +12,8 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:gravity="center"
+        android:background="@color/black"
+
         android:orientation="horizontal"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -21,6 +23,7 @@
             android:id="@+id/appNameText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/white"
             android:text="@string/app_name"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -38,12 +41,14 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Bottom bar -->
+
     <LinearLayout
         android:id="@+id/bottomBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:gravity="center"
+        android:background="@color/black"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -52,26 +57,43 @@
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/posts"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:fontFamily="monospace"
+            android:background="@drawable/custom_button"
+            android:textColor="@color/black"
+            app:cornerRadius="3dp"
             android:text="@string/posts_button_text"
             android:textAllCaps="false" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/reels"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:fontFamily="monospace"
+            android:background="@drawable/custom_button"
+            android:textColor="@color/black"
+            app:cornerRadius="3dp"
             android:text="@string/reels_button_text"
             android:textAllCaps="false" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/signOutButton"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:fontFamily="monospace"
+            android:background="@drawable/custom_button"
+            android:textColor="@color/black"
+            app:cornerRadius="3dp"
             android:text="@string/sign_out_button_text"
             android:textAllCaps="false" />
     </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

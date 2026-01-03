@@ -23,6 +23,9 @@ import coil3.load
 import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
 import com.example.instalgam.R
+import com.example.instalgam.apiClient.LikeBody
+import com.example.instalgam.apiClient.LikeReelBody
+import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.cache.ExoPlayerCache
 import com.example.instalgam.model.Reel
 import com.example.instalgam.room.ReelDatabase
@@ -37,6 +40,7 @@ class ReelAdapter(
     val context: Context,
     val elements: MutableList<Reel>,
 ) : RecyclerView.Adapter<ReelAdapter.Holder>() {
+    private val pendingLikes = mutableSetOf<PendingLike>()
     private var currentHolder: Holder? = null
 
     override fun onCreateViewHolder(
@@ -81,18 +85,18 @@ class ReelAdapter(
                 if (reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
             )
 
-            fun rollbackUI() {
-                reel.likedByUser = previousLikedState
-                reel.likeCount = previousLikeCount
-                holder.likeCount.text = reel.likeCount.toString()
-                holder.likeButton.setImageResource(
-                    if (reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
-                )
+            fun snackbarDisplay() {
+//                reel.likedByUser = previousLikedState
+//                reel.likeCount = previousLikeCount
+//                holder.likeCount.text = reel.likeCount.toString()
+//                holder.likeButton.setImageResource(
+//                    if (reel.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+//                )
                 val rootView =
                     (holder.itemView.context as Activity)
                         .findViewById<View>(android.R.id.content)
 
-                Snackbar.make(rootView, "Action failed. Please try again.", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(rootView, "API call failed!", Snackbar.LENGTH_SHORT).show()
             }
 
             CoroutineScope(Dispatchers.Main).launch {
@@ -109,12 +113,28 @@ class ReelAdapter(
                     if (isSuccess) {
                         Log.d("apiStatus", "Sync successful")
                     } else {
-                        Log.e("apiStatus", "Sync failed, rolling back UI")
-                        rollbackUI()
+                        snackbarDisplay()
+                        Log.e("apiStatus", "Sync failed, adding to pending likes")
+                        if (!pendingLikes.contains(PendingLike(reel.reelId, reel.likedByUser)) &&
+                            !pendingLikes.contains(PendingLike(reel.reelId, !reel.likedByUser))
+                        ) {
+                            pendingLikes.add(PendingLike(reel.reelId, reel.likedByUser))
+                        } else {
+                            pendingLikes.remove(PendingLike(reel.reelId, reel.likedByUser))
+                            pendingLikes.remove(PendingLike(reel.reelId, !reel.likedByUser))
+                        }
                     }
                 } catch (e: Exception) {
+                    snackbarDisplay()
                     Log.e("apiStatus", "Error: ${e.message}")
-                    rollbackUI()
+                    if (!pendingLikes.contains(PendingLike(reel.reelId, reel.likedByUser)) &&
+                        !pendingLikes.contains(PendingLike(reel.reelId, !reel.likedByUser))
+                    ) {
+                        pendingLikes.add(PendingLike(reel.reelId, reel.likedByUser))
+                    } else {
+                        pendingLikes.remove(PendingLike(reel.reelId, reel.likedByUser))
+                        pendingLikes.remove(PendingLike(reel.reelId, !reel.likedByUser))
+                    }
                 }
             }
         }
@@ -177,6 +197,36 @@ class ReelAdapter(
 
     override fun getItemCount(): Int = elements.size
 
+    fun likeUnsyncedPosts() {
+        Log.d("pendingLikes", "Size of set is: ${pendingLikes.size} ")
+        CoroutineScope(Dispatchers.IO).launch {
+            val iterator = pendingLikes.iterator()
+
+            while (iterator.hasNext()) {
+                val pending = iterator.next()
+
+                Log.d("apiStatus", "Trying like for: ${pending.reelId}")
+                try {
+                    val response =
+                        if (!pending.liked) {
+                            RetrofitApiClient.reelsApiService.likeReel(
+                                LikeReelBody(true, pending.reelId),
+                            )
+                        } else {
+                            RetrofitApiClient.reelsApiService.dislikeReel()
+                        }
+
+                    if (response.isSuccessful) {
+                        iterator.remove()
+                        Log.d("apiStatus", "Synced like: ${pending.reelId}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("apiStatus", "Sync failed", e)
+                }
+            }
+        }
+    }
+
     override fun onViewRecycled(holder: Holder) {
         super.onViewRecycled(holder)
         holder.player?.apply {
@@ -231,4 +281,9 @@ class ReelAdapter(
         var player: ExoPlayer? = null
         val muteButton: ImageView = view.findViewById(R.id.muteButton)
     }
+
+    data class PendingLike(
+        val reelId: String,
+        val liked: Boolean,
+    )
 }

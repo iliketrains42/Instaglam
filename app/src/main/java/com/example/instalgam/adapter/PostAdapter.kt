@@ -71,18 +71,18 @@ class PostAdapter(
                 if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
             )
 
-            fun rollbackUI() {
-                post.likedByUser = previousLikedState
-                post.likeCount = previousLikeCount
-                holder.likeCount.text = post.likeCount.toString()
-                holder.likeButton.setImageResource(
-                    if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
-                )
+            fun snackbarDisplay() {
+//                post.likedByUser = previousLikedState
+//                post.likeCount = previousLikeCount
+//                holder.likeCount.text = post.likeCount.toString()
+//                holder.likeButton.setImageResource(
+//                    if (post.likedByUser) R.drawable.liked_heart else R.drawable.unliked_heart,
+//                )
                 val rootView =
                     (holder.itemView.context as Activity)
                         .findViewById<View>(android.R.id.content)
 
-                Snackbar.make(rootView, "Action failed. Please try again.", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(rootView, "API call failed!", Snackbar.LENGTH_SHORT).show()
             }
 
             CoroutineScope(Dispatchers.Main).launch {
@@ -100,13 +100,27 @@ class PostAdapter(
                         Log.d("apiStatus", "Sync successful")
                     } else {
                         Log.e("apiStatus", "Sync failed, rolling back UI")
-                        rollbackUI()
-                        pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                        snackbarDisplay()
+                        if (!pendingLikes.contains(PendingLike(post.postId, post.likedByUser)) &&
+                            !pendingLikes.contains(PendingLike(post.postId, !post.likedByUser))
+                        ) {
+                            pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                        } else {
+                            pendingLikes.remove(PendingLike(post.postId, post.likedByUser))
+                            pendingLikes.remove(PendingLike(post.postId, !post.likedByUser))
+                        }
                     }
                 } catch (e: Exception) {
                     Log.e("apiStatus", "Error: ${e.message}")
-                    rollbackUI()
-                    pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                    snackbarDisplay()
+                    if (!pendingLikes.contains(PendingLike(post.postId, post.likedByUser)) &&
+                        !pendingLikes.contains(PendingLike(post.postId, !post.likedByUser))
+                    ) {
+                        pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                    } else {
+                        pendingLikes.remove(PendingLike(post.postId, post.likedByUser))
+                        pendingLikes.remove(PendingLike(post.postId, !post.likedByUser))
+                    }
                 }
             }
         }
@@ -115,6 +129,8 @@ class PostAdapter(
             transformations(CircleCropTransformation())
         }
         holder.postImage.load(post.postImage)
+        holder.shareButton.setImageResource(R.drawable.share)
+        holder.commentButton.setImageResource(R.drawable.comment)
     }
 
     override fun getItemCount(): Int = elements.size
@@ -149,23 +165,6 @@ class PostAdapter(
         }
     }
 
-    private fun toggleLike(
-        post: Post,
-        holder: Holder,
-    ) {
-        post.likeCount += if (post.likedByUser) -1 else 1
-        post.likedByUser = !post.likedByUser
-
-        holder.likeCount.text = post.likeCount.toString()
-        holder.likeButton.setImageResource(
-            if (post.likedByUser) {
-                R.drawable.liked_heart
-            } else {
-                R.drawable.unliked_heart
-            },
-        )
-    }
-
     inner class Holder(
         view: View,
     ) : RecyclerView.ViewHolder(view) {
@@ -174,6 +173,8 @@ class PostAdapter(
         val likeCount: TextView = view.findViewById(R.id.likeCountText)
         val postImage: ImageView = view.findViewById(R.id.postPicture)
         val pfpImage: ImageView = view.findViewById(R.id.profilePictureImage)
+        val commentButton: ImageView = view.findViewById(R.id.comment)
+        val shareButton: ImageView = view.findViewById(R.id.share)
     }
 
     data class PendingLike(

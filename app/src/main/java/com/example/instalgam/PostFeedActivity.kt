@@ -94,8 +94,12 @@ class PostFeedActivity : AppCompatActivity() {
     private fun observeNetworkStatus() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var hasDisconnected = false
                 networkObserver.observe().collect { status ->
-                    if (status) {
+                    if (!status) {
+                        hasDisconnected = true
+                    }
+                    if (status && hasDisconnected) {
                         postAdapter.likeUnsyncedPosts()
                         Toast
                             .makeText(
@@ -103,8 +107,7 @@ class PostFeedActivity : AppCompatActivity() {
                                 "Network is available, syncing posts with database",
                                 Toast.LENGTH_SHORT,
                             ).show()
-
-                        Log.d("networkStatus", "Network is available")
+                        Log.d("networkStatus", "Network reconnected, syncing")
                     }
                 }
             }
@@ -126,20 +129,6 @@ class PostFeedActivity : AppCompatActivity() {
             Log.d("networkStatus", "Network is available")
             fetchPostsOnline()
         }
-
-//        connectivityManager.registerDefaultNetworkCallback(
-//            object : ConnectivityManager.NetworkCallback() {
-//                override fun onAvailable(network: Network) {
-//                    Log.d("networkStatus", "Network is available")
-//                    fetchPostsOnline()
-//                }
-//
-//                override fun onUnavailable() {
-//                    Log.d("networkStatus", "Network is not available")
-//                    fetchPostsOffline()
-//                }
-//            },
-//        )
     }
 
     private fun fetchPostsOnline() {

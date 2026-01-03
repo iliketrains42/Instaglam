@@ -11,4 +11,5 @@
     <string name="sign_out_button_text">Sign Out</string>
     <string name="reels_button_text">Reels</string>
     <string name="posts_button_text">Posts</string>
+    <string name="signInText">Enter</string>
 </resources>

@@ -59,10 +59,10 @@ interface ReelsApiService {
     fun fetchReels(): retrofit2.Call<ReelResponse>
 
     @POST("like")
-    fun likeReel(
+    suspend fun likeReel(
         @Body likeReelBody: LikeReelBody,
     ): Response<LikeResponse>
 
     @DELETE("dislike")
-    fun dislikeReel(): Response<LikeResponse>
+    suspend fun dislikeReel(): Response<LikeResponse>
 }

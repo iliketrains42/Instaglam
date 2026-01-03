@@ -18,11 +18,13 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         val sp: SharedPreferences = getSharedPreferences(getString(R.string.shared_preferences_file_name), Context.MODE_PRIVATE)
         val username: String? = sp.getString(getString(R.string.logged_in_user), null)
+
         if (username != null) {
             val intent = Intent(this@MainActivity, PostFeedActivity::class.java)
             // intent.putExtra("USER_USERNAME", username)
             startActivity(intent)
         }
+
         setContentView(R.layout.landing_page)
         val login: Button = findViewById(R.id.loginButton)
         val signin: Button = findViewById(R.id.signInButton)
