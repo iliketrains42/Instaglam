@@ -54,7 +54,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-moshi:3.0.0")
     implementation("androidx.compose.ui:ui-tooling:1.10.0")
     implementation("com.google.android.material:material:1.13.0")
-//    implementation("com.squareup.picasso:picasso:2.8")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")

@@ -9,12 +9,18 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.content.edit
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.instalgam.adapter.PostAdapter
 import com.example.instalgam.apiClient.RetrofitApiClient
+import com.example.instalgam.connectivity.NetworkObserver
 import com.example.instalgam.model.Post
 import com.example.instalgam.model.PostResponse
 import com.example.instalgam.room.DatabasePost
@@ -31,6 +37,7 @@ class PostFeedActivity : AppCompatActivity() {
     private lateinit var reelsButton: Button
     private val posts: MutableList<Post> = mutableListOf()
     private lateinit var dbHelper: PostDatabaseHelper
+    private lateinit var networkObserver: NetworkObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,10 +82,33 @@ class PostFeedActivity : AppCompatActivity() {
             val intent = Intent(this@PostFeedActivity, ReelsFeedActivity::class.java)
             startActivity(intent)
         }
-        lifecycleScope.launch{
+        // Always fetch posts from the DB first
+        lifecycleScope.launch {
             fetchPostsOffline()
         }
         checkConnectivityStatus()
+        networkObserver = NetworkObserver(applicationContext)
+        observeNetworkStatus()
+    }
+
+    private fun observeNetworkStatus() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                networkObserver.observe().collect { status ->
+                    if (status) {
+                        postAdapter.likeUnsyncedPosts()
+                        Toast
+                            .makeText(
+                                this@PostFeedActivity,
+                                "Network is available, syncing posts with database",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+
+                        Log.d("networkStatus", "Network is available")
+                    }
+                }
+            }
+        }
     }
 
     private fun checkConnectivityStatus() {

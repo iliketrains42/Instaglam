@@ -13,6 +13,8 @@ import coil3.load
 import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
 import com.example.instalgam.R
+import com.example.instalgam.apiClient.LikeBody
+import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.Post
 import com.example.instalgam.room.PostDatabase
 import com.example.instalgam.room.PostDatabaseHelper
@@ -20,12 +22,17 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 class PostAdapter(
     val context: Context,
     val elements: MutableList<Post>,
 ) : RecyclerView.Adapter<PostAdapter.Holder>() {
+    private val pendingLikes = mutableSetOf<PendingLike>()
+
+    private var currentHolder: ReelAdapter.Holder? = null
+
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
@@ -94,10 +101,12 @@ class PostAdapter(
                     } else {
                         Log.e("apiStatus", "Sync failed, rolling back UI")
                         rollbackUI()
+                        pendingLikes.add(PendingLike(post.postId, post.likedByUser))
                     }
                 } catch (e: Exception) {
                     Log.e("apiStatus", "Error: ${e.message}")
                     rollbackUI()
+                    pendingLikes.add(PendingLike(post.postId, post.likedByUser))
                 }
             }
         }
@@ -110,6 +119,53 @@ class PostAdapter(
 
     override fun getItemCount(): Int = elements.size
 
+    fun likeUnsyncedPosts() {
+        Log.d("pendingLikes", "Size of set is: ${pendingLikes.size} ")
+        CoroutineScope(Dispatchers.IO).launch {
+            val iterator = pendingLikes.iterator()
+
+            while (iterator.hasNext()) {
+                val pending = iterator.next()
+
+                Log.d("apiStatus", "Trying like for: ${pending.postId}")
+                try {
+                    val response =
+                        if (!pending.liked) {
+                            RetrofitApiClient.postsApiService.likePost(
+                                LikeBody(true, pending.postId),
+                            )
+                        } else {
+                            RetrofitApiClient.postsApiService.dislikePost()
+                        }
+
+                    if (response.isSuccessful) {
+                        iterator.remove()
+                        Log.d("apiStatus", "Synced like: ${pending.postId}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("apiStatus", "Sync failed", e)
+                }
+            }
+        }
+    }
+
+    private fun toggleLike(
+        post: Post,
+        holder: Holder,
+    ) {
+        post.likeCount += if (post.likedByUser) -1 else 1
+        post.likedByUser = !post.likedByUser
+
+        holder.likeCount.text = post.likeCount.toString()
+        holder.likeButton.setImageResource(
+            if (post.likedByUser) {
+                R.drawable.liked_heart
+            } else {
+                R.drawable.unliked_heart
+            },
+        )
+    }
+
     inner class Holder(
         view: View,
     ) : RecyclerView.ViewHolder(view) {
@@ -119,4 +175,9 @@ class PostAdapter(
         val postImage: ImageView = view.findViewById(R.id.postPicture)
         val pfpImage: ImageView = view.findViewById(R.id.profilePictureImage)
     }
+
+    data class PendingLike(
+        val postId: String,
+        val liked: Boolean,
+    )
 }
