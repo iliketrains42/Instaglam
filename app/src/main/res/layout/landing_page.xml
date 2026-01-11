@@ -16,9 +16,9 @@
         android:fontFamily="monospace"
         android:stateListAnimator="@null"
         android:text="@string/login_text"
+        android:textAllCaps="false"
         android:textColor="@color/black"
         android:textColorLink="@null"
-        android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.495"
@@ -32,10 +32,10 @@
         android:layout_width="300dp"
         android:layout_height="50dp"
         android:layout_marginBottom="48dp"
+        android:background="@drawable/custom_button"
+        android:fontFamily="monospace"
         android:text="@string/sign_in_text"
         android:textAllCaps="false"
-        android:fontFamily="monospace"
-        android:background="@drawable/custom_button"
         android:textColor="@color/black"
         app:cornerRadius="3dp"
         app:layout_constraintBottom_toTopOf="@+id/loginButton"
@@ -43,4 +43,28 @@
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="60dp"
+        android:src="@drawable/icon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/appName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/signInButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.339" />
 </androidx.constraintlayout.widget.ConstraintLayout>

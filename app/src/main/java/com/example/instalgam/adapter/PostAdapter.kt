@@ -30,7 +30,6 @@ class PostAdapter(
     val elements: MutableList<Post>,
 ) : RecyclerView.Adapter<PostAdapter.Holder>() {
     private val pendingLikes = mutableSetOf<PendingLike>()
-
     private var currentHolder: ReelAdapter.Holder? = null
 
     override fun onCreateViewHolder(

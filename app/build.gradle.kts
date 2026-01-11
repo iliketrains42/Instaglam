@@ -36,6 +36,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    tasks.test {
+        useJUnitPlatform()
+    }
 }
 
 dependencies {
@@ -48,6 +51,7 @@ dependencies {
     testImplementation(libs.junit)
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("androidx.room:room-runtime:2.8.4")
+    testImplementation(libs.junit.jupiter)
     debugImplementation(libs.androidx.ui.tooling)
     kapt("androidx.room:room-compiler:2.8.4")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
@@ -63,4 +67,6 @@ dependencies {
     implementation("androidx.media3:media3-ui-compose:1.9.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    testImplementation("io.mockk:mockk:1.13.3")
+    testImplementation("androidx.test.ext:junit:1.1.5")
 }
