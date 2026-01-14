@@ -7,6 +7,7 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
@@ -25,6 +26,30 @@ data class DatabasePost(
     @ColumnInfo(name = "like_count") var likeCount: Int,
     @ColumnInfo(name = "liked_by_user") var likedByUser: Boolean,
 )
+
+@Entity
+data class PendingLike(
+    @PrimaryKey val postId: String,
+    @ColumnInfo val liked: Boolean,
+)
+
+@Dao
+interface PendingLikesDao {
+    @Query("SELECT * FROM PendingLike")
+    suspend fun fetchAll(): List<PendingLike>
+
+    @Query("SELECT * FROM PendingLike WHERE postId = :postId")
+    suspend fun getByPostId(postId: String): PendingLike?
+
+    @Query("""DELETE FROM PendingLike WHERE postId = :postID""")
+    suspend fun removeLike(postID: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addLike(post: PendingLike)
+
+    @Query("DELETE FROM PendingLike")
+    suspend fun flush()
+}
 
 @Dao
 interface PostDao {
@@ -60,6 +85,27 @@ abstract class PostDatabase : RoomDatabase() {
                         context,
                         PostDatabase::class.java,
                         "posts-database",
+                    ).build()
+                    .also { instance = it }
+            }
+    }
+}
+
+@Database(entities = [PendingLike::class], version = 1)
+abstract class PendingLikeDatabase : RoomDatabase() {
+    abstract fun pendingLikesDao(): PendingLikesDao
+
+    companion object {
+        @Volatile
+        private var instance: PendingLikeDatabase? = null
+
+        fun getInstance(context: Context): PendingLikeDatabase =
+            instance ?: synchronized(this) {
+                instance ?: Room
+                    .databaseBuilder(
+                        context,
+                        PendingLikeDatabase::class.java,
+                        "pending-likes-database",
                     ).build()
                     .also { instance = it }
             }
@@ -113,4 +159,39 @@ class PostDatabaseHelper(
                 false
             }
         }
+}
+
+class PendingLikeDatabaseHelper(
+    private val pendingLikesDao: PendingLikesDao,
+) {
+    suspend fun getAllPendingLikes(): List<PendingLike> =
+        withContext(Dispatchers.IO) {
+            pendingLikesDao.fetchAll()
+        }
+
+    suspend fun getPendingLike(postId: String): PendingLike? =
+        withContext(Dispatchers.IO) {
+            pendingLikesDao.getByPostId(postId)
+        }
+
+    suspend fun addPendingLike(
+        postId: String,
+        liked: Boolean,
+    ) {
+        withContext(Dispatchers.IO) {
+            pendingLikesDao.addLike(PendingLike(postId, liked))
+        }
+    }
+
+    suspend fun removePendingLike(postId: String) {
+        withContext(Dispatchers.IO) {
+            pendingLikesDao.removeLike(postId)
+        }
+    }
+
+    suspend fun flushAllPendingLikes() {
+        withContext(Dispatchers.IO) {
+            pendingLikesDao.flush()
+        }
+    }
 }

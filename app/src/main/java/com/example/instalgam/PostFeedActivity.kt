@@ -9,9 +9,6 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -24,6 +21,8 @@ import com.example.instalgam.connectivity.NetworkObserver
 import com.example.instalgam.model.Post
 import com.example.instalgam.model.PostResponse
 import com.example.instalgam.room.DatabasePost
+import com.example.instalgam.room.PendingLikeDatabase
+import com.example.instalgam.room.PendingLikeDatabaseHelper
 import com.example.instalgam.room.PostDatabase
 import com.example.instalgam.room.PostDatabaseHelper
 import kotlinx.coroutines.launch
@@ -37,6 +36,7 @@ class PostFeedActivity : AppCompatActivity() {
     private lateinit var reelsButton: Button
     private val posts: MutableList<Post> = mutableListOf()
     private lateinit var dbHelper: PostDatabaseHelper
+    private lateinit var pendingLikeDbHelper: PendingLikeDatabaseHelper
     private lateinit var networkObserver: NetworkObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,8 +53,11 @@ class PostFeedActivity : AppCompatActivity() {
         val db = PostDatabase.getInstance(applicationContext)
         dbHelper = PostDatabaseHelper(db.postDao())
 
+        val pendingLikeDb = PendingLikeDatabase.getInstance(applicationContext)
+        pendingLikeDbHelper = PendingLikeDatabaseHelper(pendingLikeDb.pendingLikesDao())
+
         recyclerView = findViewById(R.id.recyclerView)
-        postAdapter = PostAdapter(this, posts)
+        postAdapter = PostAdapter(this, posts, pendingLikeDbHelper)
         recyclerView.adapter = postAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.setHasFixedSize(true)

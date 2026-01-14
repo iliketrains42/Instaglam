@@ -7,6 +7,7 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
@@ -25,6 +26,30 @@ data class DatabaseReel(
     @ColumnInfo(name = "like_count") var likeCount: Int,
     @ColumnInfo(name = "liked_by_user") var likedByUser: Boolean,
 )
+
+@Entity
+data class PendingReelLike(
+    @PrimaryKey val reelId: String,
+    @ColumnInfo val liked: Boolean,
+)
+
+@Dao
+interface PendingReelLikesDao {
+    @Query("SELECT * FROM PendingReelLike")
+    suspend fun fetchAll(): List<PendingReelLike>
+
+    @Query("SELECT * FROM PendingReelLike WHERE reelId = :reelId")
+    suspend fun getByReelId(reelId: String): PendingReelLike?
+
+    @Query("""DELETE FROM PendingReelLike WHERE reelId = :reelID""")
+    suspend fun removeLike(reelID: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addLike(reel: PendingReelLike)
+
+    @Query("DELETE FROM PendingReelLike")
+    suspend fun flush()
+}
 
 @Dao
 interface ReelDao {
@@ -66,6 +91,27 @@ abstract class ReelDatabase : RoomDatabase() {
     }
 }
 
+@Database(entities = [PendingReelLike::class], version = 1)
+abstract class PendingReelLikeDatabase : RoomDatabase() {
+    abstract fun pendingReelLikesDao(): PendingReelLikesDao
+
+    companion object {
+        @Volatile
+        private var instance: PendingReelLikeDatabase? = null
+
+        fun getInstance(context: Context): PendingReelLikeDatabase =
+            instance ?: synchronized(this) {
+                instance ?: Room
+                    .databaseBuilder(
+                        context,
+                        PendingReelLikeDatabase::class.java,
+                        "pending-reel-likes-database",
+                    ).build()
+                    .also { instance = it }
+            }
+    }
+}
+
 class ReelDatabaseHelper(
     private val reelDao: ReelDao,
 ) {
@@ -97,7 +143,6 @@ class ReelDatabaseHelper(
         }
 
     suspend fun dislikeReel(reelID: String): Boolean =
-
         withContext(Dispatchers.IO) {
             reelDao.dislike(reelID)
             Log.d("dbStatus", "$reelID disliked")
@@ -113,4 +158,39 @@ class ReelDatabaseHelper(
                 false
             }
         }
+}
+
+class PendingReelLikeDatabaseHelper(
+    private val pendingReelLikesDao: PendingReelLikesDao,
+) {
+    suspend fun getAllPendingLikes(): List<PendingReelLike> =
+        withContext(Dispatchers.IO) {
+            pendingReelLikesDao.fetchAll()
+        }
+
+    suspend fun getPendingLike(reelId: String): PendingReelLike? =
+        withContext(Dispatchers.IO) {
+            pendingReelLikesDao.getByReelId(reelId)
+        }
+
+    suspend fun addPendingLike(
+        reelId: String,
+        liked: Boolean,
+    ) {
+        withContext(Dispatchers.IO) {
+            pendingReelLikesDao.addLike(PendingReelLike(reelId, liked))
+        }
+    }
+
+    suspend fun removePendingLike(reelId: String) {
+        withContext(Dispatchers.IO) {
+            pendingReelLikesDao.removeLike(reelId)
+        }
+    }
+
+    suspend fun flushAllPendingLikes() {
+        withContext(Dispatchers.IO) {
+            pendingReelLikesDao.flush()
+        }
+    }
 }

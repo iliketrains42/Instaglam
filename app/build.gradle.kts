@@ -36,9 +36,8 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    tasks.test {
-        useJUnitPlatform()
-    }
+
+
 }
 
 dependencies {

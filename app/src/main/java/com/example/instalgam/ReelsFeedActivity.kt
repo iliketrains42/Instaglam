@@ -19,6 +19,8 @@ import com.example.instalgam.connectivity.NetworkObserver
 import com.example.instalgam.model.Reel
 import com.example.instalgam.model.ReelResponse
 import com.example.instalgam.room.DatabaseReel
+import com.example.instalgam.room.PendingReelLikeDatabase
+import com.example.instalgam.room.PendingReelLikeDatabaseHelper
 import com.example.instalgam.room.ReelDatabase
 import com.example.instalgam.room.ReelDatabaseHelper
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ import retrofit2.Response
 class ReelsFeedActivity : AppCompatActivity() {
     private val reels: MutableList<Reel> = mutableListOf()
     private lateinit var dbHelper: ReelDatabaseHelper
+    private lateinit var pendingReelLikeDbHelper: PendingReelLikeDatabaseHelper
     private lateinit var vp: ViewPager2
     private lateinit var signOutButton: Button
     private lateinit var postsButton: Button
@@ -41,8 +44,11 @@ class ReelsFeedActivity : AppCompatActivity() {
         val db = ReelDatabase.getInstance(applicationContext)
         dbHelper = ReelDatabaseHelper(db.reelDao())
 
+        val pendingReelLikeDb = PendingReelLikeDatabase.getInstance(applicationContext)
+        pendingReelLikeDbHelper = PendingReelLikeDatabaseHelper(pendingReelLikeDb.pendingReelLikesDao())
+
         vp = findViewById(R.id.viewPager)
-        reelAdapter = ReelAdapter(this, reels)
+        reelAdapter = ReelAdapter(this, reels, pendingReelLikeDbHelper)
         vp.adapter = reelAdapter
 
         signOutButton = findViewById(R.id.signOutButton)

@@ -16,6 +16,8 @@ import com.example.instalgam.R
 import com.example.instalgam.apiClient.LikeBody
 import com.example.instalgam.apiClient.RetrofitApiClient
 import com.example.instalgam.model.Post
+import com.example.instalgam.room.PendingLike
+import com.example.instalgam.room.PendingLikeDatabaseHelper
 import com.example.instalgam.room.PostDatabase
 import com.example.instalgam.room.PostDatabaseHelper
 import com.google.android.material.snackbar.Snackbar
@@ -28,8 +30,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 class PostAdapter(
     val context: Context,
     val elements: MutableList<Post>,
+    private val pendingLikeDbHelper: PendingLikeDatabaseHelper,
 ) : RecyclerView.Adapter<PostAdapter.Holder>() {
-    private val pendingLikes = mutableSetOf<PendingLike>()
     private var currentHolder: ReelAdapter.Holder? = null
 
     override fun onCreateViewHolder(
@@ -100,25 +102,21 @@ class PostAdapter(
                     } else {
                         Log.e("apiStatus", "Sync failed, rolling back UI")
                         snackbarDisplay()
-                        if (!pendingLikes.contains(PendingLike(post.postId, post.likedByUser)) &&
-                            !pendingLikes.contains(PendingLike(post.postId, !post.likedByUser))
-                        ) {
-                            pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                        val existingPendingLike = pendingLikeDbHelper.getPendingLike(post.postId)
+                        if (existingPendingLike == null) {
+                            pendingLikeDbHelper.addPendingLike(post.postId, post.likedByUser)
                         } else {
-                            pendingLikes.remove(PendingLike(post.postId, post.likedByUser))
-                            pendingLikes.remove(PendingLike(post.postId, !post.likedByUser))
+                            pendingLikeDbHelper.removePendingLike(post.postId)
                         }
                     }
                 } catch (e: Exception) {
                     Log.e("apiStatus", "Error: ${e.message}")
                     snackbarDisplay()
-                    if (!pendingLikes.contains(PendingLike(post.postId, post.likedByUser)) &&
-                        !pendingLikes.contains(PendingLike(post.postId, !post.likedByUser))
-                    ) {
-                        pendingLikes.add(PendingLike(post.postId, post.likedByUser))
+                    val existingPendingLike = pendingLikeDbHelper.getPendingLike(post.postId)
+                    if (existingPendingLike == null) {
+                        pendingLikeDbHelper.addPendingLike(post.postId, post.likedByUser)
                     } else {
-                        pendingLikes.remove(PendingLike(post.postId, post.likedByUser))
-                        pendingLikes.remove(PendingLike(post.postId, !post.likedByUser))
+                        pendingLikeDbHelper.removePendingLike(post.postId)
                     }
                 }
             }
@@ -135,17 +133,15 @@ class PostAdapter(
     override fun getItemCount(): Int = elements.size
 
     fun likeUnsyncedPosts() {
-        Log.d("pendingLikes", "Size of set is: ${pendingLikes.size} ")
         CoroutineScope(Dispatchers.IO).launch {
-            val iterator = pendingLikes.iterator()
+            val pendingLikes = pendingLikeDbHelper.getAllPendingLikes()
+            Log.d("pendingLikes", "Size of pending likes: ${pendingLikes.size}")
 
-            while (iterator.hasNext()) {
-                val pending = iterator.next()
-
+            for (pending in pendingLikes) {
                 Log.d("apiStatus", "Trying like for: ${pending.postId}")
                 try {
                     val response =
-                        if (!pending.liked) {
+                        if (pending.liked) {
                             RetrofitApiClient.postsApiService.likePost(
                                 LikeBody(true, pending.postId),
                             )
@@ -154,7 +150,7 @@ class PostAdapter(
                         }
 
                     if (response.isSuccessful) {
-                        iterator.remove()
+                        pendingLikeDbHelper.removePendingLike(pending.postId)
                         Log.d("apiStatus", "Synced like: ${pending.postId}")
                     }
                 } catch (e: Exception) {
@@ -175,9 +171,4 @@ class PostAdapter(
         val commentButton: ImageView = view.findViewById(R.id.comment)
         val shareButton: ImageView = view.findViewById(R.id.share)
     }
-
-    data class PendingLike(
-        val postId: String,
-        val liked: Boolean,
-    )
 }
